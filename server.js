@@ -3,6 +3,7 @@ const crypto = require("crypto");
 
 const app = express();
 const PORT = process.env.PORT || 8080;
+
 // ================= CONFIG =================
 const SECRET_KEY = "1234567890abcdef1234567890abcdef"; // 32 bytes
 const SECRET_IV = "abcdef1234567890"; // 16 bytes
@@ -34,6 +35,12 @@ function buildResponse(parsed, code, message) {
     recordStatusCode: code,
     recordStatusDescription: message,
     amount: parsed.amount,
+
+    // 🔥 Added missing fields only
+    prefix: parsed.prefix || null,
+    mobileNumber: parsed.mobileNumber || null,
+    externalSystemId: parsed.externalSystemId || null,
+
     externalSystemRecordId: code === "4" ? "EXT" + Date.now() : null,
     bitRecordSerialId: code === "4" ? "SER" + Date.now() : null,
     openingTimestamp: new Date().toISOString(),
@@ -53,26 +60,28 @@ app.get("/endlos-api/public/machine/bit-api", (req, res) => {
       });
     }
 
-    // :unlock: Decrypt
+    // 🔓 Decrypt
     const decrypted = decrypt(encryptedData);
-    console.log(":unlock: Decrypted:", decrypted);
+    console.log("🔓 Decrypted:", decrypted);
 
     const parsed = JSON.parse(decrypted);
 
     // ================= VALIDATION =================
     if (!parsed.userId || parsed.userId !== "308208552") {
+          console.log("======== Invalid userId:", parsed.userId);
+
       return res.status(200).json(
-        buildResponse(parsed, "6", "Invalid userId") // :x: IMPORTANT FIX
+        buildResponse(parsed, "6", "Invalid userId")
       );
     }
 
     // ================= SUCCESS =================
     return res.status(200).json(
-      buildResponse(parsed, "4", "SUCCESS") // :white_check_mark:
+      buildResponse(parsed, "4", "SUCCESS")
     );
 
   } catch (err) {
-    console.error(":x: ERROR:", err.message);
+    console.error("❌ ERROR:", err.message);
 
     return res.status(500).json({
       code: 500,
@@ -83,5 +92,5 @@ app.get("/endlos-api/public/machine/bit-api", (req, res) => {
 
 // ================= START =================
 app.listen(PORT, () => {
-  console.log(`:rocket: Server running at http://localhost:${PORT}`);
+  console.log(`🚀 Server running at http://localhost:${PORT}`);
 });
